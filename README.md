@@ -50,7 +50,7 @@ yaniv/
 
 ## 🎮 How to Run
 
-1.  **Clone:** `git clone https://github.com/YOUR_USERNAME/yaniv.git`
+1.  **Clone:** `git clone https://github.com/Danvngr/yaniv.git`
 2.  **Server:** `cd server && npm install && npm run dev`
 3.  **Client:** `cd .. && npm install && npx expo start`
 
