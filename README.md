@@ -1,6 +1,6 @@
 # 🃏 Yaniv Card Game
 
-A mobile Yaniv card game app with local play against AI and online multiplayer support.
+A real-time mobile application for the classic Yaniv card game, featuring local AI play and online multiplayer.
 
 ![React Native](https://img.shields.io/badge/React%20Native-0.81-blue)
 ![Expo](https://img.shields.io/badge/Expo-54-black)
@@ -9,163 +9,51 @@ A mobile Yaniv card game app with local play against AI and online multiplayer s
 
 ---
 
+## 🚀 Engineering Highlights
+
+1.  **Real-Time Sync:** Managed complex game states across multiple clients using **Socket.io** to ensure zero-lag interactions.
+2.  **Server-Side Logic:** All game rules (Sticking, Assaf, Runs) are validated on the **Node.js** server to prevent client-side manipulation.
+3.  **Type Safety:** Leveraged **TypeScript** to define strict interfaces for game actions, reducing runtime errors in the multiplayer flow.
+4.  **State Management:** Implemented **React Context** for efficient handling of authentication and global sound settings.
+
+---
+
 ## 📱 Features
 
-- **Local Play** - Play against 1-3 AI opponents
-- **Online Multiplayer** - Create a room and invite friends
-- **Sticking** - Threw a card and drew the same rank? You have 2 seconds to stick!
-- **Assaf** - Someone called Yaniv but you have fewer points? Assaf them!
-- **In-Game Chat** - Send messages and emojis to other players
-- **Leaderboard** - Compete against other players
+* **Online Multiplayer:** Private rooms with real-time updates via WebSockets.
+* **Local Play:** Playable against custom AI opponents for offline practice.
+* **Advanced Mechanics:** Full support for "Sticking" (2s window), "Assaf" penalties, and Joker substitutions.
+* **Social Features:** Integrated in-game chat, emoji reactions, and a competitive leaderboard.
 
 ---
 
-## 🎮 Game Rules
+## 🛠 Tech Stack
 
-### Objective
-Get rid of your cards and finish with 7 points or less.
-
-### Card Values
-| Card | Points |
-|------|--------|
-| Joker | 0 |
-| A | 1 |
-| 2-10 | Face value |
-| J, Q, K | 10 |
-
-### Turn Structure
-1. **Discard** - A single card, 2+ of the same rank, or a run of 3+ in the same suit
-2. **Draw** - From the deck or the discard pile
-
-### Valid Discards
-- Single card: `7♥`
-- Pair or more: `7♥ 7♦` or `7♥ 7♦ 7♠`
-- Run (minimum 3): `5♥ 6♥ 7♥`
-- Joker can substitute for a missing card in a run
-
-### Round End
-- **Yaniv** - Call when you have 7 points or less
-- **Assaf** - If someone has equal or fewer points than the Yaniv caller
-
-### Scoring
-- Losers receive the sum of cards in their hand
-- Getting caught in an Assaf adds 30 bonus points
-- Reach 100 points? You're out
-
----
-
-## 🚀 Installation
-
-### Requirements
-- Node.js 18+
-- npm or yarn
-- Expo CLI
-
-### Client Setup
-
-```bash
-# Clone the project
-git clone https://github.com/YOUR_USERNAME/yaniv.git
-cd yaniv
-
-# Install dependencies
-npm install
-
-# Create .env file (see .env.example)
-cp .env.example .env
-# Edit .env with your Firebase credentials
-
-# Run
-npx expo start
-```
-
-### Server Setup
-
-```bash
-cd server
-
-# Install dependencies
-npm install
-
-# Development
-npm run dev
-
-# Production build
-npm run build
-npm start
-```
+* **Frontend:** React Native, Expo, Expo Router, TypeScript.
+* **Backend:** Node.js, Express, Socket.io.
+* **Services:** Firebase (Authentication).
 
 ---
 
 ## 📁 Project Structure
 
-```
+```bash
 yaniv/
-├── app/                    # Screens (Expo Router)
-│   ├── index.tsx          # Login screen
-│   ├── lobby.tsx          # Main lobby
-│   ├── create-room.tsx    # Room creation
-│   ├── game-table.tsx     # Game screen
-│   ├── round-summary.tsx  # Round summary
-│   └── game-over.tsx      # Game over
-│
-├── components/            # Shared components
-├── context/              # React Context
-│   ├── AuthContext.tsx   # User management
-│   └── SoundContext.tsx  # Sound management
-│
-├── lib/                  # Logic
-│   ├── socketService.ts  # Server connection
-│   ├── firebase.ts       # Authentication
-│   └── gameSounds.ts     # Game sounds
-│
-├── assets/               # Images and sounds
-│   ├── images/cards/     # Card images
-│   └── sounds/           # Sound files
-│
-└── server/               # Game server
-    └── src/
-        ├── index.ts      # Entry point
-        └── game/
-            ├── Room.ts       # Room management
-            ├── RoomManager.ts # Rooms manager
-            └── YanivLogic.ts  # Game rules
+├── app/             # Screens & Navigation (Expo Router)
+├── components/      # UI Components
+├── context/         # Auth & Global State
+├── lib/             # Socket services & Firebase config
+└── server/          # Node.js Server logic (Room & Game managers)
 ```
 
 ---
 
-## 🔧 Tech Stack
+## 🎮 How to Run
 
-### Client
-- **React Native** + **Expo** - Mobile development
-- **TypeScript** - Type safety
-- **Expo Router** - Navigation
-- **Socket.io Client** - Real-time communication
-- **Firebase** - Authentication
-
-### Server
-- **Node.js** + **Express**
-- **Socket.io** - WebSocket
-- **TypeScript**
+1.  **Clone:** `git clone https://github.com/YOUR_USERNAME/yaniv.git`
+2.  **Server:** `cd server && npm install && npm run dev`
+3.  **Client:** `cd .. && npm install && npx expo start`
 
 ---
 
-## 🎯 Roadmap
-
-- [ ] End-of-round card matching
-- [ ] Tournaments
-- [ ] Card skins
-- [ ] Full offline mode
-- [ ] iPad/Tablet support
-
----
-
-## 📄 License
-
-MIT License
-
----
-
-## 👨‍💻 Author
-
-Daniel
+**Author:** Daniel | CS Student
