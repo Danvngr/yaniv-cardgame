@@ -46,13 +46,11 @@ yaniv/
 ├── lib/             # Socket services & Firebase config
 └── server/          # Node.js Server logic (Room & Game managers)
 ```
-![Image](https://github.com/user-attachments/assets/36809a05-1ce9-4d67-992d-fdf82a45eb5b)
+## 📱 App Preview
 
-![Image](https://github.com/user-attachments/assets/739ec85d-ba4a-43fe-becf-db56cacbaa44)
-
-![Image](https://github.com/user-attachments/assets/50aff6dd-2360-4ef8-892f-b52baa0cc3a7)
-
-![Image](https://github.com/user-attachments/assets/7346573b-c87b-49e4-b4a9-8467784f7ca2)
+| Game Setup | Player Turn | Yaniv Moment! | Statistics |
+| :---: | :---: | :---: | :---: |
+| ![Image 1](https://github.com/user-attachments/assets/36809a05-1ce9-4d67-992d-fdf82a45eb5b) | ![Image 2](https://github.com/user-attachments/assets/739ec85d-ba4a-43fe-becf-db56cacbaa44) | ![Image 3](https://github.com/user-attachments/assets/50aff6dd-2360-4ef8-892f-b52baa0cc3a7) | ![Image 4](https://github.com/user-attachments/assets/7346573b-c87b-49e4-b4a9-8467784f7ca2) |
 
 ---
 
