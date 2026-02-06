@@ -7,6 +7,7 @@ A real-time mobile application for the classic Yaniv card game, featuring local 
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue)
 ![Socket.io](https://img.shields.io/badge/Socket.io-4.7-green)
 
+
 ---
 
 ## 🚀 Engineering Highlights
@@ -45,6 +46,13 @@ yaniv/
 ├── lib/             # Socket services & Firebase config
 └── server/          # Node.js Server logic (Room & Game managers)
 ```
+![Image](https://github.com/user-attachments/assets/36809a05-1ce9-4d67-992d-fdf82a45eb5b)
+
+![Image](https://github.com/user-attachments/assets/739ec85d-ba4a-43fe-becf-db56cacbaa44)
+
+![Image](https://github.com/user-attachments/assets/50aff6dd-2360-4ef8-892f-b52baa0cc3a7)
+
+![Image](https://github.com/user-attachments/assets/7346573b-c87b-49e4-b4a9-8467784f7ca2)
 
 ---
 
