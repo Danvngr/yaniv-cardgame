@@ -3,6 +3,7 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server, Socket } from 'socket.io';
 import { roomManager } from './game/RoomManager';
+import { verifyToken } from './firebaseAdmin';
 import {
     Card,
     ClientGameState,
@@ -42,14 +43,47 @@ app.get('/health', (req, res) => {
 // Track socket to room mapping
 const socketToRoom = new Map<string, string>();
 const socketToPlayerId = new Map<string, string>();
+const socketToUserId = new Map<string, string>();
+
+// Check if authentication is required (production mode)
+const requireAuth = !!process.env.FIREBASE_SERVICE_ACCOUNT;
 
 io.on('connection', (socket: Socket<ClientToServerEvents, ServerToClientEvents>) => {
   console.log(`[Socket] Connected: ${socket.id}`);
 
+  // === Authentication ===
+  socket.on('authenticate', async ({ token }) => {
+    if (!requireAuth) {
+      // Development mode - skip verification
+      const mockUserId = `dev-user-${socket.id.slice(0, 8)}`;
+      socketToUserId.set(socket.id, mockUserId);
+      socket.emit('authenticated', { userId: mockUserId });
+      console.log(`[Socket] Dev mode - assigned userId: ${mockUserId}`);
+      return;
+    }
+
+    const userId = await verifyToken(token);
+    if (!userId) {
+      socket.emit('authError', { message: 'Invalid token' });
+      return;
+    }
+    
+    socketToUserId.set(socket.id, userId);
+    socket.emit('authenticated', { userId });
+    console.log(`[Socket] Authenticated: ${socket.id} as ${userId}`);
+  });
+
   // === Room Actions ===
 
   socket.on('createRoom', ({ settings, player }) => {
-    const playerId = `player-${socket.id}`;
+    // Check authentication in production
+    const userId = socketToUserId.get(socket.id);
+    if (requireAuth && !userId) {
+      socket.emit('roomError', { message: 'Not authenticated. Please reconnect.' });
+      return;
+    }
+
+    const playerId = userId || `player-${socket.id}`;
 
     const room = roomManager.createRoom(
       playerId,
@@ -79,6 +113,13 @@ io.on('connection', (socket: Socket<ClientToServerEvents, ServerToClientEvents>)
   });
 
   socket.on('joinRoom', ({ code, player }) => {
+    // Check authentication in production
+    const userId = socketToUserId.get(socket.id);
+    if (requireAuth && !userId) {
+      socket.emit('roomError', { message: 'Not authenticated. Please reconnect.' });
+      return;
+    }
+
     const room = roomManager.getRoom(code);
 
     if (!room) {
@@ -125,7 +166,7 @@ io.on('connection', (socket: Socket<ClientToServerEvents, ServerToClientEvents>)
       return;
     }
 
-    const playerId = `player-${socket.id}`;
+    const playerId = userId || `player-${socket.id}`;
     const success = room.addPlayer(playerId, player.name, player.avatar, false);
 
     if (!success) {

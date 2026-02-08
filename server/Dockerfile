@@ -1,28 +1,11 @@
-FROM node:20-alpine
-
+FROM node:20-slim
 WORKDIR /app
-
-# Copy package files
 COPY package*.json ./
-
-# Install dependencies
-RUN npm ci --only=production
-
-# Copy TypeScript config and source
-COPY tsconfig.json ./
-COPY src ./src
-
-# Install dev dependencies for build
-RUN npm install typescript
-
-# Build TypeScript
-RUN npm run build
-
-# Remove dev dependencies
-RUN npm prune --production
-
-# Expose port
+RUN npm install
+COPY . .
+RUN npx tsc --outDir ./dist
 EXPOSE 3001
 
-# Start server
-CMD ["npm", "start"]
+# --- שורת הדיבוג החדשה ---
+# היא בודקת אם הסוד קיים ומדפיסה את הסטטוס שלו
+CMD ["sh", "-c", "echo '--- DEBUG CHECK ---'; if [ -z \"$FIREBASE_SERVICE_ACCOUNT\" ]; then echo 'RESULT: Secret is MISSING inside the container'; else echo 'RESULT: Secret is PRESENT inside the container'; fi; echo '--- STARTING APP ---'; node dist/index.js"]

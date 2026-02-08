@@ -50,6 +50,10 @@ export interface Room {
 
 // === Socket Events ===
 export interface ServerToClientEvents {
+  // Authentication
+  authenticated: (data: { userId: string }) => void;
+  authError: (data: { message: string }) => void;
+
   // Room events
   roomCreated: (data: { code: string }) => void;
   roomJoined: (data: { room: ClientRoom }) => void;
@@ -85,6 +89,9 @@ export interface ServerToClientEvents {
 }
 
 export interface ClientToServerEvents {
+  // Authentication
+  authenticate: (data: { token: string }) => void;
+
   // Room actions
   createRoom: (data: { settings: RoomSettings; player: { name: string; avatar: string } }) => void;
   joinRoom: (data: { code: string; player: { name: string; avatar: string } }) => void;
