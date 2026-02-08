@@ -8,7 +8,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Svg, { Circle } from 'react-native-svg';
 import { useAuth } from '../context/AuthContext';
 import { useSound } from '../context/SoundContext';
-import { playAssaf, playStick, playYaniv } from '../lib/gameSounds';
+import { playAssaf, playFlick, playPick, playStick, playYaniv } from '../lib/gameSounds';
 import { ClientGameState, RoundResult as ServerRoundResult, socketService } from '../lib/socketService';
 import { setUserInRoom } from '../lib/userService';
 
@@ -55,8 +55,8 @@ const HAND_POSITION = { x: width / 2, y: height - 80 };
 
 // מיקומי יריבים
 const OPP_TOP_POSITION = { x: width / 2, y: 70 };
-const OPP_LEFT_POSITION = { x: 15, y: height * 0.30 }; // קרוב לקיר שמאל
-const OPP_RIGHT_POSITION = { x: width - 15, y: height * 0.30 }; // קרוב לקיר ימין
+const OPP_LEFT_POSITION = { x: 15, y: height * 0.21 }; // קרוב לקיר שמאל (מיקום מנפה מוגבה ב־30%)
+const OPP_RIGHT_POSITION = { x: width - 15, y: height * 0.21 }; // קרוב לקיר ימין
 
 type Suit = 'hearts' | 'diamonds' | 'clubs' | 'spades' | 'joker';
 type Rank = 'A' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '10' | 'J' | 'Q' | 'K' | 'Joker';
@@ -861,13 +861,14 @@ const FlyingCard = ({ startPos, endPos, card, onComplete, delay = 0, isFaceDown 
                 })
             ]).start(({ finished }) => { if (finished && onComplete) onComplete(); });
         } else {
+            // זריקה רגילה: easing עדין בסוף כדי שהקלף יגיע ברציפות לראש הערימה בלי "עצירה" ואז נחיתה
             Animated.sequence([
                 Animated.delay(delay),
                 Animated.timing(anim, { 
                     toValue: 1, 
                     duration: duration, 
                     useNativeDriver: true, 
-                    easing: Easing.out(Easing.poly(4)) 
+                    easing: Easing.bezier(0.22, 0.61, 0.36, 1)
                 })
             ]).start(({ finished }) => { if (finished && onComplete) onComplete(); });
         }
@@ -882,10 +883,10 @@ const FlyingCard = ({ startPos, endPos, card, onComplete, delay = 0, isFaceDown 
         : anim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
 
     const isThrowing = startPos.y > endPos.y;
-    const defaultArcHeight = isThrowing ? -80 : -40;
+    const defaultArcHeight = isThrowing ? 0 : -40; // זריקה לערימה: בלי קשת – קו ישר עד ראש הערימה
     const arcHeight = customArcHeight !== undefined ? customArcHeight : defaultArcHeight;
     
-    // עבור כאפה - bounce קטן וחד בסוף הנחיתה
+    // עבור כאפה - bounce קטן וחד בסוף הנחיתה. זריקה רגילה - בלי קשת (arcHeight=0) כדי שהקלף יגיע ישר לראש הערימה
     const arcTranslateY = isSlam
         ? anim.interpolate({ 
             inputRange: [0, 0.85, 0.92, 1], 
@@ -1276,6 +1277,7 @@ export default function GameTableScreen() {
   const isAiAnimatingRef = useRef<boolean>(false);
   const turnTimerIntervalRef = useRef<number | null>(null);
   const gameEndedRef = useRef(false);
+  const hasLeftGameRef = useRef(false);
   
   // Keep opponents ref in sync
   useEffect(() => {
@@ -1417,6 +1419,8 @@ export default function GameTableScreen() {
                 delay: 0
               };
               setAnimatingCards(prev => [...prev, drawAnim]);
+              setDiscardPile(prev => prev.filter(c => c.id !== newCard.id));
+              if (sfxOn) playPick(true);
               
               // Add card to hand AFTER animation completes
               setTimeout(() => {
@@ -1642,6 +1646,7 @@ export default function GameTableScreen() {
       
       // המתנה 4 שניות לפני מעבר למסך הסיכום
       setTimeout(() => {
+        hasLeftGameRef.current = true;
         router.replace({
           pathname: '/game-over',
           params: {
@@ -1763,16 +1768,22 @@ export default function GameTableScreen() {
       // משיכה מהערימה: הקלף יוצא מהערימה ומוצג פתוח – משתמשים בראש הערימה (השרת לא שולח ב-aiMove)
       const isAiPileDraw = drawFrom === 'pile';
       const aiTopOfPile = discardPileRef.current?.length ? discardPileRef.current[discardPileRef.current.length - 1] : null;
+      const drawDelay = cardsThrown.length * 50 + 200;
       aiAnims.push({
         id: `ai-draw-${Date.now()}`,
         startPos: isAiPileDraw ? PILE_POSITION : DECK_POSITION,
         endPos: aiPos,
         card: isAiPileDraw && aiTopOfPile ? aiTopOfPile : generateRandomCard(),
         isFaceDown: !isAiPileDraw,
-        delay: cardsThrown.length * 50 + 200
+        delay: drawDelay
       });
       
+      if (isAiPileDraw && aiTopOfPile) {
+          setDiscardPile(prev => prev.filter(c => c.id !== aiTopOfPile!.id));
+      }
       setAnimatingCards(prevAnims => [...prevAnims, ...aiAnims]);
+      if (sfxOn) playFlick(true);
+      if (sfxOn) setTimeout(() => playPick(true), drawDelay);
       
       // Clear animations after delay (longer to match server execution)
       setTimeout(() => {
@@ -1820,15 +1831,21 @@ export default function GameTableScreen() {
         : generateRandomCard();
       // משיכה מהערימה: הקלף יוצא מהערימה ומוצג פתוח עד ליד היריב
       const showFaceDown = !isPileDraw;
+      const drawDelay = cardsThrown.length * 50 + 200;
       anims.push({
         id: `opp-draw-${Date.now()}`,
         startPos: isPileDraw ? PILE_POSITION : DECK_POSITION,
         endPos: oppPos,
         card: drawCard,
         isFaceDown: showFaceDown,
-        delay: cardsThrown.length * 50 + 200
+        delay: drawDelay
       });
+      if (isPileDraw && drawCard) {
+          setDiscardPile(prev => prev.filter(c => c.id !== drawCard.id));
+      }
       setAnimatingCards(prevAnims => [...prevAnims, ...anims]);
+      if (sfxOn) playFlick(true);
+      if (sfxOn) setTimeout(() => playPick(true), drawDelay);
       setTimeout(() => {
         setAnimatingCards(prev => prev.filter(a => !a.id.startsWith('opp-')));
         setIsAnimating(false);
@@ -2067,6 +2084,8 @@ export default function GameTableScreen() {
   }, [turnSecondsLeft, hasActiveTurn, isAppActive, roundEndType, isAnimating]);
 
   useEffect(() => {
+      // Don't vibrate if user already left the game (lobby, round summary, game over, etc.)
+      if (hasLeftGameRef.current) return;
       // Don't show warnings if game has ended
       if (gameEndedRef.current) return;
       
@@ -2400,6 +2419,7 @@ export default function GameTableScreen() {
                   scoreLimit: SCORE_LIMIT
               };
               
+              hasLeftGameRef.current = true;
               router.push({
                   pathname: '/round-summary',
                   params: {
@@ -2471,6 +2491,7 @@ export default function GameTableScreen() {
                   scoreLimit: SCORE_LIMIT
               };
 
+              hasLeftGameRef.current = true;
               router.push({
                   pathname: '/round-summary',
                   params: { 
@@ -2547,6 +2568,7 @@ export default function GameTableScreen() {
           isThrowingCardsRef.current = true;
           
           setAnimatingCards(prev => [...prev, ...newAnims]);
+          if (sfxOn) playFlick(true);
           
           // Save current hand BEFORE removing cards (critical for new card detection)
           const currentHandBeforeRemoval = [...myHand];
@@ -2569,21 +2591,14 @@ export default function GameTableScreen() {
           // שמירת הקלפים שנזרקו לעדכון אופטימיסטי
           const thrownCardsForPile = [...cardsToThrow];
           
-          // Clear animations after delay and update discard pile from server
           setTimeout(() => {
-              console.log('=== setTimeout 800ms fired ===');
-              console.log('isWaitingForNewCardRef before reset:', isWaitingForNewCardRef.current);
-
               setAnimatingCards(prev => prev.filter(a => !a.id.startsWith('throw-') && !a.id.startsWith('draw-')));
               setIsAnimating(false);
               
-              // Reset flag FIRST before checking pending updates
               isThrowingCardsRef.current = false;
               isWaitingForNewCardRef.current = false;
               
-              // עדכן את הערימה - אם יש עדכון מהשרת, השתמש בו. אחרת, הוסף את הקלפים שנזרקו
               if (pendingDiscardPileRef.current) {
-
                 setDiscardPile(pendingDiscardPileRef.current);
                 pendingDiscardPileRef.current = null;
                 if (pendingDiscardGroupRef.current) {
@@ -2591,8 +2606,6 @@ export default function GameTableScreen() {
                   pendingDiscardGroupRef.current = null;
                 }
               } else {
-                // אין עדכון מהשרת - הוסף את הקלפים שנזרקו לערימה (עדכון אופטימיסטי)
-
                 setDiscardPile(prev => [...prev, ...thrownCardsForPile]);
                 setLastDiscardGroup(thrownCardsForPile);
               }
@@ -2691,32 +2704,26 @@ export default function GameTableScreen() {
               id: `draw-${newCardToAdd.id}`, startPos: isPileSource ? PILE_POSITION : DECK_POSITION, endPos: HAND_POSITION, card: newCardToAdd, isFaceDown: false, delay: 200
           });
       }
+      if (isPileSource && pileTakeIndex !== null) {
+          setDiscardPile(prev => prev.filter((_, i) => i !== pileTakeIndex));
+      }
       setAnimatingCards(prev => [...prev, ...newAnims]);
-
-      // --- סיום המהלך (עדכון נתונים אמיתי) ---
+      if (sfxOn) playFlick(true);
+      if (!willOfferStick && sfxOn) setTimeout(() => playPick(true), 200);
+      
       setTimeout(() => {
-          if (isPileSource && pileTakeIndex !== null) {
-              setDiscardPile(prev => prev.filter((_, i) => i !== pileTakeIndex));
-          }
-          
-          // מוסיפים את הקלפים שנזרקו
           setDiscardPile(prev => [...prev, ...cardsToThrow]);
           setLastDiscardGroup(cardsToThrow);
           
-          // מוסיפים את הקלף החדש ליד רק אם לא הוספנו אותו כבר (כלומר לא במצב הדבקה)
           if (!willOfferStick) {
               setMyHand(prev => sortHand([...prev, newCardToAdd]));
           }
           
-          // מעדכנים את מספר הקלפים בחפיסה
           setDeckCount(deckRef.current.length);
-          
-          // מנקים
           setHiddenCardId(null);
           setAnimatingCards([]);
           setIsAnimating(false);
           
-          // אם יש הדבקה - לא מעבירים תור כאן (הטיימר/הדבקה יטפלו בזה)
           if (!willOfferStick) {
               setLastDiscardedRank(null);
               advanceTurn();
@@ -2899,6 +2906,7 @@ export default function GameTableScreen() {
                           <Text style={styles.leaveCancelText}>ביטול</Text>
                       </Pressable>
                       <Pressable style={styles.leaveExitButton} onPress={() => {
+                          hasLeftGameRef.current = true;
                           // Cleanup all timers before leaving
                           if (turnTimerIntervalRef.current) {
                             clearInterval(turnTimerIntervalRef.current);
@@ -2925,6 +2933,7 @@ export default function GameTableScreen() {
                   <Text style={styles.leaveConfirmText}>{roomClosedReason}</Text>
                   <View style={styles.leaveConfirmActions}>
                       <Pressable style={styles.leaveExitButton} onPress={() => {
+                          hasLeftGameRef.current = true;
                           setRoomClosedReason(null);
                           if (turnTimerIntervalRef.current) {
                             clearInterval(turnTimerIntervalRef.current);
@@ -2961,6 +2970,7 @@ export default function GameTableScreen() {
                   <Pressable
                       style={styles.errorButton}
                       onPress={() => {
+                          if (errorNavigateToLobby) hasLeftGameRef.current = true;
                           setErrorMessage(null);
                           if (errorNavigateToLobby) {
                               router.replace('/lobby');
@@ -3328,8 +3338,8 @@ const styles = StyleSheet.create({
   
   // מיקומי יריבים (מתואמים ל-OPP_TOP_POSITION, OPP_LEFT_POSITION, OPP_RIGHT_POSITION)
   posTop: { position: 'absolute', top: 70, left: 0, right: 0, alignItems: 'center', zIndex: 10 },
-  posLeft: { position: 'absolute', top: height * 0.30, left: 15, zIndex: 10 },
-  posRight: { position: 'absolute', top: height * 0.30, right: 15, zIndex: 10 },
+  posLeft: { position: 'absolute', top: height * 0.21, left: 15, zIndex: 10 },
+  posRight: { position: 'absolute', top: height * 0.21, right: 15, zIndex: 10 },
   
   centerTable: { position: 'absolute', top: TABLE_Y_POS - (TABLE_CARD_HEIGHT/2), width: '100%', flexDirection: 'row', justifyContent: 'center', gap: 24, zIndex: 5 },
   discardAreaWrapper: { alignItems: 'center', justifyContent: 'center' },
