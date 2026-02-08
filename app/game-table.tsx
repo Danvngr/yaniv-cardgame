@@ -4,8 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Crown, Home, Settings } from 'lucide-react-native';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, AppState, Dimensions, Easing, Image, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, UIManager, Vibration, View, type AppStateStatus } from 'react-native';
-import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
-import Reanimated, { runOnJS, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Svg, { Circle } from 'react-native-svg';
 import { useAuth } from '../context/AuthContext';
 import { useSound } from '../context/SoundContext';
@@ -718,6 +717,9 @@ const PlayerView = ({ player, isMe = false, isLeader = false, handValue, turnSec
 const CARD_SPREAD = 28;
 const SET_GROUP_SPREAD_PAIR = 72;   // זוג – קלפים נפרדים
 const SET_GROUP_SPREAD_34 = 48;     // שלישייה/רביעייה – צמצום פתיחה לטלפון
+// Fixed width for discard area so the deck never shifts; use ~1/3 of max spread so deck is a bit left
+const MAX_DISCARD_SPREAD = 3 * Math.max(SET_GROUP_SPREAD_PAIR, SET_GROUP_SPREAD_34);
+const MAX_DISCARD_CONTAINER_WIDTH = TABLE_CARD_WIDTH + Math.floor(MAX_DISCARD_SPREAD / 3);
 const DiscardPile = ({
     cards,
     onPress,
@@ -1916,10 +1918,7 @@ export default function GameTableScreen() {
       
       // שלב 3: צליל בדיוק ברגע הפגיעה
       setTimeout(() => {
-        if (sfxOn) {
-          playStick(true);
-          Vibration.vibrate([100, 50, 150]);
-        }
+        if (sfxOn) playStick(true);
       }, UP_TIME + SLAM_TIME);
       
       // שלב 4: ניקוי
@@ -2708,7 +2707,6 @@ export default function GameTableScreen() {
           if (!willOfferStick) {
               setMyHand(prev => sortHand([...prev, newCardToAdd]));
           }
-          if (sfxOn) Vibration.vibrate(30);
           
           // מעדכנים את מספר הקלפים בחפיסה
           setDeckCount(deckRef.current.length);
@@ -2785,10 +2783,7 @@ export default function GameTableScreen() {
       
       // צליל בנחיתה
       setTimeout(() => {
-          if (sfxOn) {
-              playStick(true);
-              Vibration.vibrate([100, 50, 150]);
-          }
+          if (sfxOn) playStick(true);
       }, UP_TIME + SLAM_TIME);
       
       // ניקוי ועדכון
@@ -2876,16 +2871,17 @@ export default function GameTableScreen() {
       })}
 
       <View style={styles.centerTable}>
-          {/* מעבירים את hiddenCardId לקומפוננטה */}
-          <DiscardPile
-            cards={discardPile}
-            onPress={() => handlePilePress('last')}
-            onPickFromGroup={handlePilePress}
-            isSelected={selectedCardIds.length > 0 || stickCardId !== null}
-            hiddenCardId={hiddenCardId}
-            lastGroupCards={lastDiscardGroup}
-            allowGroupPick={true}
-          />
+          <View style={[styles.discardAreaWrapper, { width: MAX_DISCARD_CONTAINER_WIDTH }]}>
+              <DiscardPile
+                cards={discardPile}
+                onPress={() => handlePilePress('last')}
+                onPickFromGroup={handlePilePress}
+                isSelected={selectedCardIds.length > 0 || stickCardId !== null}
+                hiddenCardId={hiddenCardId}
+                lastGroupCards={lastDiscardGroup}
+                allowGroupPick={true}
+              />
+          </View>
           <DeckPile onPress={() => executeMove('deck')} />
       </View>
 
@@ -3336,6 +3332,7 @@ const styles = StyleSheet.create({
   posRight: { position: 'absolute', top: height * 0.30, right: 15, zIndex: 10 },
   
   centerTable: { position: 'absolute', top: TABLE_Y_POS - (TABLE_CARD_HEIGHT/2), width: '100%', flexDirection: 'row', justifyContent: 'center', gap: 24, zIndex: 5 },
+  discardAreaWrapper: { alignItems: 'center', justifyContent: 'center' },
 
   chatToggle: { position: 'absolute', right: 16, bottom: 170, width: 50, height: 50, borderRadius: 25, backgroundColor: '#6B5344', borderWidth: 3, borderColor: '#4A3728', alignItems: 'center', justifyContent: 'center', zIndex: 30, shadowColor:'#000', shadowOffset:{width:0,height:4}, shadowOpacity:0.45, shadowRadius:6, elevation:6 },
   chatToggleText: { color: 'white', fontSize: 20 },

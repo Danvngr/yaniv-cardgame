@@ -39,7 +39,6 @@
           }
         }
       ],
-      "react-native-google-mobile-ads",
       "expo-build-properties",
       "expo-tracking-transparency"
     ],

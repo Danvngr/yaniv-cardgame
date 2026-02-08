@@ -3,6 +3,7 @@ import { ArrowRight, Search, Users } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useAuth } from '../context/AuthContext';
+import { auth } from '../lib/firebase';
 import { setUserInRoom } from '../lib/userService';
 import { socketService } from '../lib/socketService';
 
@@ -55,10 +56,16 @@ export default function JoinRoomScreen() {
 
   // Connect to server when screen loads
   useEffect(() => {
-    if (!socketService.isConnected()) {
-      setIsConnecting(true);
-      socketService.connect();
-    }
+    const connectWithAuth = async () => {
+      if (!socketService.isConnected()) {
+        setIsConnecting(true);
+        // Get auth token and connect
+        const token = await auth.currentUser?.getIdToken();
+        socketService.connect(token);
+      }
+    };
+
+    connectWithAuth();
 
     socketService.onConnected = () => {
       setIsConnecting(false);

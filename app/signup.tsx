@@ -1,18 +1,19 @@
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import { ArrowLeft, Lock, Mail, User } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  Pressable,
-  StyleSheet,
-  Dimensions,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
+    Dimensions,
+    Image,
+    KeyboardAvoidingView,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Mail, Lock, User, ArrowLeft } from 'lucide-react-native';
-import { useRouter } from 'expo-router';
 import { useAuth } from '../context/AuthContext';
 
 const { width } = Dimensions.get('window');
@@ -109,19 +110,18 @@ export default function SignupScreen() {
   };
 
   return (
-    <LinearGradient
-      colors={['#9333ea', '#ec4899', '#fb923c']}
-      style={styles.container}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-    >
+    <View style={styles.container}>
+      <Image
+        source={require('../assets/images/lobby-background.png')}
+        style={styles.backgroundImage}
+        resizeMode="cover"
+      />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}
+        style={styles.keyboardView}
       >
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          <View style={{ width: 50 }} />
-
+          <View style={{ height: 24 }} />
           <View style={styles.card}>
             <View style={styles.headerContainer}>
               <Text style={styles.title}>{t.title}</Text>
@@ -131,28 +131,28 @@ export default function SignupScreen() {
             <View style={styles.formContainer}>
               <View style={styles.inputWrapper}>
                 <View style={isRTL ? styles.iconRight : styles.iconLeft}>
-                  <User size={20} color="#9ca3af" />
+                  <User size={20} color="#F5E6D3" />
                 </View>
                 <TextInput
                   style={[styles.input, isRTL && { textAlign: 'right', paddingRight: 45, paddingLeft: 15 }]}
                   placeholder={t.usernamePlaceholder}
                   value={username}
                   onChangeText={setUsername}
-                  placeholderTextColor="#9ca3af"
+                  placeholderTextColor="rgba(245,230,211,0.6)"
                   autoCapitalize="none"
                 />
               </View>
 
               <View style={styles.inputWrapper}>
                 <View style={isRTL ? styles.iconRight : styles.iconLeft}>
-                  <Mail size={20} color="#9ca3af" />
+                  <Mail size={20} color="#F5E6D3" />
                 </View>
                 <TextInput
                   style={[styles.input, isRTL && { textAlign: 'right', paddingRight: 45, paddingLeft: 15 }]}
                   placeholder={t.emailPlaceholder}
                   value={email}
                   onChangeText={setEmail}
-                  placeholderTextColor="#9ca3af"
+                  placeholderTextColor="rgba(245,230,211,0.6)"
                   keyboardType="email-address"
                   autoCapitalize="none"
                 />
@@ -160,122 +160,122 @@ export default function SignupScreen() {
 
               <View style={styles.inputWrapper}>
                 <View style={isRTL ? styles.iconRight : styles.iconLeft}>
-                  <Lock size={20} color="#9ca3af" />
+                  <Lock size={20} color="#F5E6D3" />
                 </View>
                 <TextInput
                   style={[styles.input, isRTL && { textAlign: 'right', paddingRight: 45, paddingLeft: 15 }]}
                   placeholder={t.passwordPlaceholder}
                   value={password}
                   onChangeText={setPassword}
-                  placeholderTextColor="#9ca3af"
+                  placeholderTextColor="rgba(245,230,211,0.6)"
                   secureTextEntry
                 />
               </View>
 
               <View style={styles.inputWrapper}>
                 <View style={isRTL ? styles.iconRight : styles.iconLeft}>
-                  <Lock size={20} color="#9ca3af" />
+                  <Lock size={20} color="#F5E6D3" />
                 </View>
                 <TextInput
                   style={[styles.input, isRTL && { textAlign: 'right', paddingRight: 45, paddingLeft: 15 }]}
                   placeholder={t.confirmPlaceholder}
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
-                  placeholderTextColor="#9ca3af"
+                  placeholderTextColor="rgba(245,230,211,0.6)"
                   secureTextEntry
                 />
               </View>
 
               <Pressable
                 onPress={handleSignup}
-                style={({ pressed }) => [styles.mainBtn, pressed && styles.pressed]}
+                style={({ pressed }) => [styles.mainBtnWrap, pressed && styles.pressed]}
                 disabled={isSubmitting}
               >
-                <Text style={styles.btnTextWhite}>{t.signupBtn}</Text>
+                <LinearGradient
+                  colors={['#5B8A72', '#3D5E4A']}
+                  style={styles.mainBtn}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  <Text style={styles.btnText}>{t.signupBtn}</Text>
+                </LinearGradient>
               </Pressable>
 
               {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
               <Pressable onPress={() => router.replace('/')} style={styles.backBtn}>
-                <ArrowLeft size={16} color="#4b5563" />
+                <ArrowLeft size={16} color="#F5E6D3" />
                 <Text style={styles.backBtnText}>{t.backBtn}</Text>
               </Pressable>
             </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </LinearGradient>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, backgroundColor: '#1a1a2e' },
+  backgroundImage: { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%' },
+  keyboardView: { flex: 1 },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: 60,
+    paddingTop: 50,
     paddingBottom: 40,
   },
-  langButton: {
-    position: 'absolute',
-    top: 50,
-    right: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 20,
-    zIndex: 10,
-  },
-  langText: { color: '#fff', fontWeight: 'bold' },
   card: {
-    backgroundColor: '#fff',
+    backgroundColor: '#4B3728',
     width: width - 40,
-    borderRadius: 30,
-    paddingVertical: 40,
-    paddingHorizontal: 25,
+    borderRadius: 18,
+    paddingVertical: 28,
+    paddingHorizontal: 24,
+    borderWidth: 3,
+    borderColor: '#8B7355',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 10,
-    position: 'relative',
-    marginTop: 40,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.5,
+    shadowRadius: 14,
+    elevation: 14,
   },
-  headerContainer: { alignItems: 'center', marginBottom: 30 },
-  title: { fontSize: 26, fontWeight: 'bold', color: '#111827' },
-  subtitle: { fontSize: 16, color: '#6b7280', marginTop: 6 },
-  formContainer: { gap: 15 },
+  headerContainer: { alignItems: 'center', marginBottom: 24 },
+  title: { fontSize: 24, fontWeight: '900', color: '#F5E6D3' },
+  subtitle: { fontSize: 15, color: 'rgba(245,230,211,0.85)', marginTop: 6 },
+  formContainer: { gap: 14 },
   inputWrapper: { position: 'relative', justifyContent: 'center' },
   input: {
     width: '100%',
-    paddingVertical: 16,
+    paddingVertical: 14,
     paddingLeft: 45,
     paddingRight: 15,
     borderWidth: 2,
-    borderColor: '#e5e7eb',
-    borderRadius: 16,
+    borderColor: '#8B7355',
+    borderRadius: 12,
     fontSize: 16,
-    backgroundColor: '#f9fafb',
+    backgroundColor: '#5C4A32',
+    color: '#F5E6D3',
   },
-  iconLeft: { position: 'absolute', left: 15, zIndex: 1 },
-  iconRight: { position: 'absolute', right: 15, zIndex: 1 },
+  iconLeft: { position: 'absolute', left: 14, zIndex: 1 },
+  iconRight: { position: 'absolute', right: 14, zIndex: 1 },
+  mainBtnWrap: { borderRadius: 14, overflow: 'hidden', borderWidth: 2, borderColor: '#4A3728' },
   mainBtn: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
-    borderRadius: 16,
-    backgroundColor: '#9333ea',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
   },
-  pressed: { opacity: 0.8, transform: [{ scale: 0.98 }] },
-  btnTextWhite: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-  errorText: { color: '#ef4444', textAlign: 'center', fontWeight: '600' },
+  pressed: { opacity: 0.9, transform: [{ scale: 0.98 }] },
+  btnText: { color: '#F5E6D3', fontSize: 16, fontWeight: 'bold' },
+  errorText: { color: '#FCA5A5', textAlign: 'center', fontWeight: '600', fontSize: 14 },
   backBtn: {
     flexDirection: 'row',
     gap: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
+    paddingVertical: 14,
   },
-  backBtnText: { color: '#4b5563', fontWeight: '600' },
+  backBtnText: { color: 'rgba(245,230,211,0.9)', fontWeight: '600', fontSize: 14 },
 });

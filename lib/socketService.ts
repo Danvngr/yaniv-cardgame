@@ -71,6 +71,10 @@ export interface RoundResult {
 
 // === Socket Events ===
 type ServerToClientEvents = {
+  // Authentication
+  authenticated: (data: { userId: string }) => void;
+  authError: (data: { message: string }) => void;
+  // Room events
   roomCreated: (data: { code: string }) => void;
   roomJoined: (data: { room: ClientRoom }) => void;
   roomUpdated: (data: { room: ClientRoom }) => void;
@@ -95,6 +99,9 @@ type ServerToClientEvents = {
 };
 
 type ClientToServerEvents = {
+  // Authentication
+  authenticate: (data: { token: string }) => void;
+  // Room & Game events
   createRoom: (data: { settings: RoomSettings; player: { name: string; avatar: string } }) => void;
   joinRoom: (data: { code: string; player: { name: string; avatar: string } }) => void;
   leaveRoom: () => void;
@@ -105,6 +112,7 @@ type ClientToServerEvents = {
   callYaniv: () => void;
   stick: () => void;
   skipStick: () => void;
+  chatMessage: (data: { text: string }) => void;
   ping: () => void;
 };
 
@@ -116,6 +124,8 @@ class SocketService {
   private currentRoom: ClientRoom | null = null;
   private currentGameState: ClientGameState | null = null;
   private myPlayerId: string | null = null;
+  private authToken: string | null = null;
+  private isAuthenticated = false;
   
   // Reconnection data - stored to allow rejoining after disconnect
   private lastRoomCode: string | null = null;
@@ -130,6 +140,8 @@ class SocketService {
   public onReconnected?: () => void; // Called after successful rejoin
   public onReconnectFailed?: (reason: string) => void;
   public onError?: (message: string) => void;
+  public onAuthenticated?: (userId: string) => void;
+  public onAuthError?: (message: string) => void;
   
   // Room callbacks
   public onRoomCreated?: (code: string) => void;
@@ -155,10 +167,15 @@ class SocketService {
   public onChatMessage?: (odId: string, name: string, text: string) => void;
 
   // === Connection ===
-  connect(): void {
+  connect(authToken?: string): void {
     if (this.socket?.connected) return;
 
     console.log('[Socket] Connecting to server...');
+    
+    // Store auth token for reconnection
+    if (authToken) {
+      this.authToken = authToken;
+    }
 
     this.socket = io(SERVER_URL, {
       transports: ['websocket'],
@@ -180,10 +197,24 @@ class SocketService {
     this.currentRoom = null;
     this.currentGameState = null;
     this.myPlayerId = null;
+    this.isAuthenticated = false;
   }
 
   isConnected(): boolean {
     return this.socket?.connected ?? false;
+  }
+
+  // === Authentication ===
+  private authenticate(): void {
+    if (!this.socket || !this.authToken) {
+      console.log('[Socket] No auth token, skipping authentication');
+      this.isAuthenticated = true; // Allow connection without auth in dev mode
+      this.onConnected?.();
+      return;
+    }
+
+    console.log('[Socket] Authenticating...');
+    this.socket.emit('authenticate', { token: this.authToken });
   }
 
   // === Event Listeners ===
@@ -192,22 +223,40 @@ class SocketService {
 
     this.socket.on('connect', () => {
       console.log('[Socket] Connected');
-      const wasReconnecting = this.isReconnecting;
       this.reconnectAttempts = 0;
       
-      // If we were in a room before disconnect, try to rejoin
-      if (wasReconnecting && this.lastRoomCode && this.lastPlayerName && this.lastPlayerAvatar) {
+      // Authenticate immediately after connection
+      this.authenticate();
+    });
+
+    // Authentication events
+    this.socket.on('authenticated', ({ userId }) => {
+      console.log('[Socket] Authenticated as:', userId);
+      this.isAuthenticated = true;
+      this.myPlayerId = userId;
+      
+      // If we were reconnecting, try to rejoin room
+      if (this.isReconnecting && this.lastRoomCode && this.lastPlayerName && this.lastPlayerAvatar) {
         console.log('[Socket] Attempting to rejoin room:', this.lastRoomCode);
         this.joinRoom(this.lastRoomCode, this.lastPlayerName, this.lastPlayerAvatar);
-        // Note: onReconnected will be called when roomJoined is received
       } else {
         this.isReconnecting = false;
         this.onConnected?.();
       }
+      
+      this.onAuthenticated?.(userId);
+    });
+
+    this.socket.on('authError', ({ message }) => {
+      console.error('[Socket] Authentication error:', message);
+      this.isAuthenticated = false;
+      this.onAuthError?.(message);
+      this.onError?.(message);
     });
 
     this.socket.on('disconnect', () => {
       console.log('[Socket] Disconnected');
+      this.isAuthenticated = false;
       // Mark as reconnecting if we were in a room - don't clear room data yet
       if (this.lastRoomCode) {
         this.isReconnecting = true;
@@ -241,15 +290,14 @@ class SocketService {
       this.currentRoom = room;
       this.lastRoomCode = room.code; // Store for potential reconnection
       
-      // CRITICAL FIX: Use socket.id to correctly identify myself
-      // The odId format is "player-{socketId}" for human players
-      const mySocketId = this.socket?.id;
-      const me = room.players.find(p => p.odId === `player-${mySocketId}`);
+      // Find myself in the room - use authenticated userId or socket id
+      const me = room.players.find(p => p.odId === this.myPlayerId) || 
+                 room.players.find(p => p.odId === `player-${this.socket?.id}`);
       if (me) {
         this.myPlayerId = me.odId;
         console.log(`[Socket] Identified as player: ${me.odId} (${me.name})`);
       } else {
-        console.warn(`[Socket] Could not find myself in room! socketId: ${mySocketId}, players:`, room.players.map(p => p.odId));
+        console.warn(`[Socket] Could not find myself in room! myPlayerId: ${this.myPlayerId}, players:`, room.players.map(p => p.odId));
       }
       
       // Handle reconnection case
@@ -352,6 +400,10 @@ class SocketService {
     this.socket.on('stickPerformed', ({ playerId, card }) => {
       this.onStickPerformed?.(playerId, card);
     });
+
+    this.socket.on('chatMessage', ({ odId, name, text }) => {
+      this.onChatMessage?.(odId, name, text);
+    });
   }
 
   // === Helper Methods ===
@@ -360,6 +412,11 @@ class SocketService {
     this.lastPlayerName = null;
     this.lastPlayerAvatar = null;
     this.isReconnecting = false;
+  }
+
+  // Update auth token (e.g., when token is refreshed)
+  updateAuthToken(token: string): void {
+    this.authToken = token;
   }
 
   // === Room Actions ===

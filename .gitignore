@@ -1,4 +1,4 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+﻿# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
 # dependencies
 node_modules/
@@ -41,3 +41,11 @@ app-example
 # generated native folders
 /ios
 /android
+
+# secrets / sensitive (do not commit)
+server/secret.txt
+server/sa.json
+server/*׳׳¡׳׳*׳—׳“׳©*.txt
+*׳׳¡׳׳*׳—׳“׳©*.txt
+# any .txt in server (e.g. sensitive docs)
+server/*.txt
