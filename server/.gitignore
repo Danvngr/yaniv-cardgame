@@ -1,0 +1,10 @@
+﻿node_modules/
+dist/
+.env
+.env.local
+*.log
+
+# secrets / sensitive (paths relative to server/ - do not commit)
+secret.txt
+sa.json
+*׳׳¡׳׳*׳—׳“׳©*.txt

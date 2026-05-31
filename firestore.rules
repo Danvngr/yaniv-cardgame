@@ -1,0 +1,95 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helper functions ───────────────────────────────────────────────────
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return request.auth.uid == uid;
+    }
+
+    // ── Users ──────────────────────────────────────────────────────────────
+    // Any authenticated user can read profiles (needed for friends/leaderboard).
+    // Only the owner can write their own profile.
+
+    match /users/{uid} {
+      allow read: if isSignedIn();
+      allow create: if isOwner(uid);
+      allow update: if isOwner(uid);
+      allow delete: if false;
+
+      // Friends sub-collection: owner manages their own list
+      match /friends/{friendUid} {
+        allow read:   if isSignedIn();
+        allow write:  if isOwner(uid);
+      }
+    }
+
+    // ── Username index ─────────────────────────────────────────────────────
+    // Readable by anyone signed in (needed to check availability).
+    // Writes handled server-side via transaction; direct client writes only
+    // allowed if the caller owns the entry.
+
+    match /usernames/{username} {
+      allow read:   if isSignedIn();
+      allow write:  if isSignedIn()
+                    && (
+                         !resource.data.keys().hasAny(['uid'])   // new doc
+                         || resource.data.uid == request.auth.uid // current owner
+                       );
+    }
+
+    // ── Friend requests ────────────────────────────────────────────────────
+    // A user can send a request (create where from == their uid).
+    // Both parties can read requests addressed to them or sent by them.
+    // Only the recipient can accept/decline (update).
+    // Nobody can hard-delete requests (soft status change only).
+
+    match /friendRequests/{requestId} {
+      allow read:   if isSignedIn()
+                    && (resource.data.from == request.auth.uid
+                        || resource.data.to   == request.auth.uid);
+      allow create: if isSignedIn()
+                    && request.resource.data.from == request.auth.uid;
+      allow update: if isSignedIn()
+                    && resource.data.to == request.auth.uid;
+      allow delete: if false;
+    }
+
+    // ── Game invites ───────────────────────────────────────────────────────
+    // Same pattern as friend requests.
+
+    match /gameInvites/{inviteId} {
+      allow read:   if isSignedIn()
+                    && (resource.data.from == request.auth.uid
+                        || resource.data.to   == request.auth.uid);
+      allow create: if isSignedIn()
+                    && request.resource.data.from == request.auth.uid;
+      allow update: if isSignedIn()
+                    && (resource.data.to   == request.auth.uid
+                        || resource.data.from == request.auth.uid);
+      allow delete: if false;
+    }
+
+    // ── Game results ───────────────────────────────────────────────────────
+    // Any signed-in user can read results (leaderboard).
+    // A user can only write their own result.
+
+    match /gameResults/{resultId} {
+      allow read:   if isSignedIn();
+      allow create: if isSignedIn()
+                    && request.resource.data.playerId == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    // ── Deny everything else ───────────────────────────────────────────────
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
